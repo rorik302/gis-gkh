@@ -4,6 +4,18 @@ import os
 import sys
 
 
+def read_env():
+    try:
+        with open('.env') as f:
+            content = f.read()
+    except IOError:
+        content = ''
+
+    for line in content.splitlines():
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key, value)
+
+
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'gis_gkh.settings')
@@ -19,4 +31,5 @@ def main():
 
 
 if __name__ == '__main__':
+    read_env()
     main()
