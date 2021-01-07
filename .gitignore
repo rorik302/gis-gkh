@@ -1,3 +1,4 @@
 .idea
 venv
+debug.log
 db.sqlite3
