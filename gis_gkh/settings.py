@@ -83,3 +83,6 @@ USE_L10N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+
+DADATA_API_KEY = os.environ.get('DADATA_API_KEY')
+DADATA_SECRET_KEY = os.environ.get('DADATA_SECRET_KEY')
