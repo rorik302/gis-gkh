@@ -330,6 +330,7 @@ class PassportParser:
         self._wait_for_table()
         self._open_collapsed_elements()
         self._extract_passport_info()
+        self.driver.quit()
         return self._passport_info
 
     def _extract_passport_info(self):
