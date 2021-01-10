@@ -86,6 +86,9 @@ USE_L10N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DADATA_API_KEY = os.environ.get('DADATA_API_KEY')
 DADATA_SECRET_KEY = os.environ.get('DADATA_SECRET_KEY')
