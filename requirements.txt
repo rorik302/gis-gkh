@@ -1,7 +1,9 @@
 asgiref==3.3.1
 Django==3.1.5
+django-wkhtmltopdf==3.3.0
 djangorestframework==3.12.2
 pytz==2020.5
 selenium==3.141.0
+six==1.15.0
 sqlparse==0.4.1
 urllib3==1.26.2
