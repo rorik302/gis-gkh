@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <style>
+        .table tr td {
+            text-align: center;
+        }
+        .table tr td:nth-child(2) {
+            text-align: left;
+        }
+    </style>
+    <title>Паспорт</title>
+</head>
+<body>
+<table class="table">
+    <thead>
+    <tr>
+        <th>Индекс</th>
+        <th>Наименование</th>
+        <th>Ед. изм.</th>
+        <th>Значение</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for record in passport %}
+        <tr>
+            <td>{{ record.index }}</td>
+            <td>{{ record.title }}</td>
+            <td>{% firstof record.units %}</td>
+            <td>{% firstof record.value %}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</body>
+</html>
