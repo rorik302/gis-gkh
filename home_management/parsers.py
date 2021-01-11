@@ -32,7 +32,6 @@ class AddressParser:
         self.driver.get(self._url)
         self._wait_for_form()
         self._fill_form()
-
         self._submit()
 
         result = self._search_results()
@@ -48,227 +47,98 @@ class AddressParser:
             return url
 
     def _fill_form(self):
-        self._select_region()
+        while True:
+            loop = 0
+            try:
+                if loop >= 5:
+                    return False
+                else:
+                    self._select_region()
 
-        if self._data['city'] and self._data['settlement']:
-            self._select_city()
-            self._select_settlement2()
-        elif self._data['city']:
-            self._select_city()
-        elif self._data['settlement']:
-            self._select_area()
-            self._select_settlement()
+                    if self._data['city'] and self._data['settlement']:
+                        self._select_city()
+                        self._select_settlement2()
+                    elif self._data['city']:
+                        self._select_city()
+                    elif self._data['settlement']:
+                        self._select_area()
+                        self._select_settlement()
 
-        if self._data['street']:
-            self._select_street()
+                    if self._data['street']:
+                        self._select_street()
 
-        if self._data['house']:
-            self._select_house()
+                    if self._data['house']:
+                        self._select_house()
+                    return
+            except (TimeoutException, NoSuchElementException):
+                loop += 1
+                continue
+
+    def _select_field(self, selector, value, next_action=None):
+        select_field = self.driver.find_element_by_css_selector(
+            f'{self._select_container_selector}:not(.select2-container-disabled){selector}'
+        )
+
+        if 'select2-container-disabled' not in select_field.get_attribute('class'):
+            chosen = select_field.find_element_by_css_selector('a span.select2-chosen')
+            if chosen.text.lower().startswith('выберите'):
+                toggle = select_field.find_element_by_css_selector(f'{self._select_container_selector} a')
+                toggle.click()
+                select2_input = self.driver.find_element_by_css_selector(self._select2_input_selector)
+                select2_input.send_keys(value)
+                select2_results = WebDriverWait(self.driver, self._timeout).until(
+                    lambda d: d.find_elements_by_css_selector(
+                        f'{self._select2_no_results_selector},{self._select2_result_selector}')
+                )
+                self._handle_results(select2_results, next_action, selector)
+            else:
+                return
+        else:
+            print('Элемент не доступен')
+            return
+
+    def _handle_results(self, results, next_action=None, selector=None):
+        if 'street' in selector and len(results) > 1:
+            for result in results:
+                if self._reduce_string(result.text) == self._reduce_string(f'{self._data["street_type"]} {self._data["street"]}'):
+                    result.click()
+                    break
+        else:
+            if 'select2-no-results' not in results[0].get_attribute('class'):
+                results[0].click()
+                if next_action:
+                    next_action()
+            else:
+                self._handle_no_results(next_action)
+
+    def _handle_no_results(self, next_action=None):
+        print('Результаты не найдены')
+        input_el = self.driver.find_element_by_css_selector(self._select2_input_selector)
+        input_el.send_keys(Keys.ESCAPE)
+
+        if next_action:
+            next_action()
 
     def _select_region(self):
-        select_field = WebDriverWait(self.driver, self._timeout).until(
-            ec.presence_of_element_located(
-                (By.CSS_SELECTOR, f'{self._select_container_selector}:not(.select2-container-disabled).region-2'))
-        )
-        if 'select2-container-disabled' not in select_field.get_attribute('class'):
-            chosen = select_field.find_element_by_css_selector('a span.select2-chosen')
-            if chosen.text.lower().startswith('выберите'):
-                toggle = select_field.find_element_by_css_selector(f'{self._select_container_selector} a')
-                toggle.click()
-                select2_input = self.driver.find_element_by_css_selector(self._select2_input_selector)
-                select2_input.send_keys(self._data['region'])
-                select2_results = WebDriverWait(self.driver, self._timeout).until(
-                    lambda d: d.find_elements_by_css_selector(
-                        f'{self._select2_no_results_selector},{self._select2_result_selector}')
-                )
-
-                if 'select2-no-results' not in select2_results[0].get_attribute('class'):
-                    select2_results[0].click()
-                else:
-                    print('Результаты не найдены')
-                    select2_input.send_keys(Keys.ESCAPE)
-            else:
-                return
-        else:
-            print('Элемент не доступен')
-            return
+        self._select_field('.region-2', self._data['region'])
 
     def _select_area(self):
-        select_field = WebDriverWait(self.driver, self._timeout).until(
-            ec.presence_of_element_located(
-                (By.CSS_SELECTOR, f'{self._select_container_selector}:not(.select2-container-disabled).area-2'))
-        )
-        if 'select2-container-disabled' not in select_field.get_attribute('class'):
-            chosen = select_field.find_element_by_css_selector('a span.select2-chosen')
-            if chosen.text.lower().startswith('выберите'):
-                toggle = select_field.find_element_by_css_selector(f'{self._select_container_selector} a')
-                toggle.click()
-                select2_input = self.driver.find_element_by_css_selector(self._select2_input_selector)
-                select2_input.send_keys(self._data['area'])
-                select2_results = WebDriverWait(self.driver, self._timeout).until(
-                    lambda d: d.find_elements_by_css_selector(
-                        f'{self._select2_no_results_selector},{self._select2_result_selector}')
-                )
-
-                if 'select2-no-results' not in select2_results[0].get_attribute('class'):
-                    select2_results[0].click()
-                else:
-                    print('Результаты не найдены')
-                    select2_input.send_keys(Keys.ESCAPE)
-            else:
-                return
-        else:
-            print('Элемент не доступен')
-            return
+        self._select_field('.area-2', self._data['area'], self._select_city)
 
     def _select_settlement(self):
-        select_field = WebDriverWait(self.driver, self._timeout).until(
-            ec.presence_of_element_located(
-                (By.CSS_SELECTOR, f'{self._select_container_selector}:not(.select2-container-disabled).settlement-2'))
-        )
-        if 'select2-container-disabled' not in select_field.get_attribute('class'):
-            chosen = select_field.find_element_by_css_selector('a span.select2-chosen')
-            if chosen.text.lower().startswith('выберите'):
-                toggle = select_field.find_element_by_css_selector(f'{self._select_container_selector} a')
-                toggle.click()
-                select2_input = self.driver.find_element_by_css_selector(self._select2_input_selector)
-                select2_input.send_keys(self._data['settlement'])
-                select2_results = WebDriverWait(self.driver, self._timeout).until(
-                    lambda d: d.find_elements_by_css_selector(
-                        f'{self._select2_no_results_selector},{self._select2_result_selector}')
-                )
-
-                if 'select2-no-results' not in select2_results[0].get_attribute('class'):
-                    select2_results[0].click()
-                else:
-                    print('Результаты не найдены')
-                    select2_input.send_keys(Keys.ESCAPE)
-            else:
-                return
-        else:
-            print('Элемент не доступен')
-            return
+        self._select_field('.settlement-2', self._data['settlement'], self._select_street)
 
     def _select_settlement2(self):
-        select_field = WebDriverWait(self.driver, self._timeout).until(
-            ec.presence_of_element_located(
-                (By.CSS_SELECTOR, f'{self._select_container_selector}:not(.select2-container-disabled).planningStructureElement-2'))
-        )
-
-        if 'select2-container-disabled' not in select_field.get_attribute('class'):
-            chosen = select_field.find_element_by_css_selector('a span.select2-chosen')
-            if chosen.text.lower().startswith('выберите'):
-                toggle = select_field.find_element_by_css_selector(f'{self._select_container_selector} a')
-                toggle.click()
-                select2_input = self.driver.find_element_by_css_selector(self._select2_input_selector)
-                select2_input.send_keys(self._data['settlement'])
-                select2_results = WebDriverWait(self.driver, self._timeout).until(
-                    lambda d: d.find_elements_by_css_selector(
-                        f'{self._select2_no_results_selector},{self._select2_result_selector}')
-                )
-
-                if 'select2-no-results' not in select2_results[0].get_attribute('class'):
-                    select2_results[0].click()
-                else:
-                    print('Результаты не найдены')
-                    select2_input.send_keys(Keys.ESCAPE)
-                    self._select_settlement()
-                    return self._select_city()
-            else:
-                return
-        else:
-            print('Элемент не доступен')
-            return
+        self._select_field('.planningStructureElement-2', self._data['settlement'], self._select_settlement)
 
     def _select_city(self):
-        select_field = WebDriverWait(self.driver, self._timeout).until(
-            ec.presence_of_element_located((By.CSS_SELECTOR, f'{self._select_container_selector}:not(.select2-container-disabled).city-2'))
-        )
-
-        if 'select2-container-disabled' not in select_field.get_attribute('class'):
-            chosen = select_field.find_element_by_css_selector('a span.select2-chosen')
-            if chosen.text.lower().startswith('выберите'):
-                toggle = select_field.find_element_by_css_selector(f'{self._select_container_selector} a')
-                toggle.click()
-                select2_input = self.driver.find_element_by_css_selector(self._select2_input_selector)
-                select2_input.send_keys(self._data['city'])
-                select2_results = WebDriverWait(self.driver, self._timeout).until(
-                    lambda d: d.find_elements_by_css_selector(
-                        f'{self._select2_no_results_selector},{self._select2_result_selector}')
-                )
-
-                if 'select2-no-results' not in select2_results[0].get_attribute('class'):
-                    select2_results[0].click()
-                else:
-                    print('Результаты не найдены')
-                    select2_input.send_keys(Keys.ESCAPE)
-                    self._select_area()
-                    return self._select_city()
-            else:
-                return
-        else:
-            print('Элемент не доступен')
-            return
+        self._select_field('.city-2', self._data['city'], self._select_area)
 
     def _select_street(self):
-        select_field = WebDriverWait(self.driver, self._timeout).until(
-            ec.presence_of_element_located(
-                (By.CSS_SELECTOR, f'{self._select_container_selector}:not(.select2-container-disabled).street-2'))
-        )
-        if 'select2-container-disabled' not in select_field.get_attribute('class'):
-            chosen = select_field.find_element_by_css_selector('a span.select2-chosen')
-            if chosen.text.lower().startswith('выберите'):
-                toggle = select_field.find_element_by_css_selector(f'{self._select_container_selector} a')
-                toggle.click()
-                select2_input = self.driver.find_element_by_css_selector(self._select2_input_selector)
-                select2_input.send_keys(self._data['street'])
-                select2_results = WebDriverWait(self.driver, self._timeout).until(
-                    lambda d: d.find_elements_by_css_selector(
-                        f'{self._select2_no_results_selector},{self._select2_result_selector}')
-                )
-                if len(select2_results) > 1:
-                    for result in select2_results:
-                        if self._reduce_string(result.text) == self._reduce_string(f'{self._data["street_type"]} {self._data["street"]}'):
-                            result.click()
-                            break
-                else:
-                    if 'select2-no-results' not in select2_results[0].get_attribute('class'):
-                        select2_results[0].click()
-                    else:
-                        print('Результаты не найдены')
-                        select2_input.send_keys(Keys.ESCAPE)
-            else:
-                return
-        else:
-            print('Элемент не доступен')
-            return
+        self._select_field('.street-2', self._data['street'])
 
     def _select_house(self):
-        select_field = WebDriverWait(self.driver, self._timeout).until(
-            ec.presence_of_element_located(
-                (By.CSS_SELECTOR, f'{self._select_container_selector}:not(.select2-container-disabled).house-2'))
-        )
-        if 'select2-container-disabled' not in select_field.get_attribute('class'):
-            chosen = select_field.find_element_by_css_selector('a span.select2-chosen')
-            if chosen.text.lower().startswith('выберите'):
-                toggle = select_field.find_element_by_css_selector(f'{self._select_container_selector} a')
-                toggle.click()
-                select2_input = self.driver.find_element_by_css_selector(self._select2_input_selector)
-                select2_input.send_keys(self._data['house'])
-                select2_results = WebDriverWait(self.driver, self._timeout).until(
-                    lambda d: d.find_elements_by_css_selector(
-                        f'{self._select2_no_results_selector},{self._select2_result_selector}')
-                )
-                if 'select2-no-results' not in select2_results[0].get_attribute('class'):
-                    select2_results[0].click()
-                else:
-                    print('Результаты не найдены')
-                    select2_input.send_keys(Keys.ESCAPE)
-            else:
-                return
-        else:
-            print('Элемент не доступен')
-            return
+        self._select_field('.house-2', self._data['house'])
 
     def _submit(self):
         btn = WebDriverWait(self.driver, self._timeout).until(
